@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  infracalendar:
+    build: .
+    image: infracalendar:latest
+    network_mode: "host" # allows container to reach host localhost:8002 on Linux
+    environment:
+      - AUTH_TOKEN=secret
+    volumes:
+      - ./starkparks.yml:/app/starkparks.yml:ro
+    command: ["--config-file", "/app/starkparks.yml"]
