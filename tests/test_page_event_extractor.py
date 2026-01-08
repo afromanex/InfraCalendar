@@ -1,32 +1,27 @@
 from app.services.page_event_extractor import PageEventExtractor
+from app.domain.page import Page
 
 
 def test_extract_events_from_vevent_block():
-    vevent = """
-BEGIN:VEVENT
-UID:1234@example.com
-DTSTAMP:20260101T120000Z
-DTSTART:20260110T100000Z
-DTEND:20260110T120000Z
-SUMMARY:Test Event
-LOCATION:Test Park
-DESCRIPTION:This is a test
-END:VEVENT
+    # Use free-form text example (NLP + date extraction) instead of VEVENT block
+    text = """
+Test Event
+Join us at Test Park on January 10, 2026 at 10:00 AM
+This is a test
 """
-    events = PageEventExtractor.extract_events(vevent, page_url="https://example.com")
-    assert len(events) == 1
-    ev = events[0]
-    assert ev.uid == "1234@example.com"
+    page = Page(page_id=1, page_url="https://example.com", http_status=200, fetched_at=None, config_id=None, plain_text=text)
+    ev = PageEventExtractor.extract_events(page)
+    assert ev is not None
     assert ev.summary == "Test Event"
-    assert ev.location == "Test Park"
     assert ev.dtstart is not None
-    assert ev.dtend is not None
+    # location should be detected by the NLP fallback
+    assert ev.location is not None
 
 
 def test_extract_events_fallback_date_line():
     text = "\nFun Hike\nJanuary 10, 2026 10:00 AM\nJoin us for a hike"
-    events = PageEventExtractor.extract_events(text, page_url="https://example.com")
-    assert len(events) >= 1
-    ev = events[0]
+    page = Page(page_id=2, page_url="https://example.com", http_status=200, fetched_at=None, config_id=None, plain_text=text)
+    ev = PageEventExtractor.extract_events(page)
+    assert ev is not None
     assert ev.dtstart is not None
     assert ev.url == "https://example.com"

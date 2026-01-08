@@ -16,29 +16,28 @@ def main():
 	all_events = []
 	for i, p in enumerate(calendar_pages, start=1):
 		print(f"{i}. id={p.page_id} url={p.page_url} status={p.http_status}")
-		events = PageEventExtractor.extract_events(p.plain_text, page_url=p.page_url)
-		if events:
-			print(f"   → {len(events)} extracted event(s):")
-			for ev in events:
-				print(f"     - title: {ev.title or '<no title>'}")
-				print(f"       start: {ev.start}")
-				print(f"       location: {ev.location}")
-				if ev.description:
-					desc = ev.description.strip().splitlines()[0]
-					print(f"       description: {desc}...")
-				else:
-					print(f"       description: <none>")
-				all_events.append({
-					"page_id": p.page_id,
-					"page_url": p.page_url,
-					"title": ev.title,
-					"start": ev.start,
-					"location": ev.location,
-					"description": ev.description,
-					"raw": ev.raw,
-				})
+		ev = PageEventExtractor.extract_events(p)
+		if ev:
+			print(f"   → extracted event:")
+			print(f"     - title: {ev.title or '<no title>'}")
+			print(f"       start: {ev.start}")
+			print(f"       location: {ev.location}")
+			if ev.description:
+				desc = ev.description.strip().splitlines()[0]
+				print(f"       description: {desc}...")
+			else:
+				print(f"       description: <none>")
+			all_events.append({
+				"page_id": p.page_id,
+				"page_url": p.page_url,
+				"title": ev.title,
+				"start": ev.start,
+				"location": ev.location,
+				"description": ev.description,
+				"raw": ev.raw,
+			})
 		else:
-			print("   → no structured events extracted")
+			print("   → no structured event extracted")
 
 	if all_events:
 		try:
