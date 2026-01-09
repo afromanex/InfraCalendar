@@ -90,24 +90,28 @@ class OllamaClient:
                     "role": "system",
                     "content": (
                         "You are a strict information extraction engine. "
-                        "Return ONLY valid JSON. No markdown. No extra keys. "
-                        "If unknown, use null."
-                        ),
+                        "Return ONLY valid JSON. "
+                        "Keys must be exactly: summary, description, dtstart, dtend, "
+                        "duration, location, url, categories, rrule. "
+                        "If a field is not explicitly present in the text, use null. "
+                        "Do not infer missing dates or times."
+                    ),
                 },
                 {
                     "role": "user",
                     "content": (
-                        "Extract these fields: summary, description, dtstart, dtend, "
-                        "duration, location, url, categories, rrule. "
-                        f"Text: {page.plain_text}"
-                        ),
+                        "Extract event data from the following text.\n\n"
+                        f"{page.plain_text[:4000]}"
+                    ),
                 },
             ],
             "options": {
                 "temperature": 0,
+                "num_predict": 350,
+                "top_p": 0.1,
             },
         }
-        
+       
         resp = requests.post(
             self.url,
             json=payload,
@@ -152,7 +156,7 @@ class OllamaClient:
 
             return event 
         except Exception as e:
-            logger.error(f"Failed to parse event from Ollama response for page {page.page_url}: {e}")
+            logger.error(f"Failed to parse event from Ollama response for page {page.page_url}: {e} - response content: {content}")
             return None
 
 

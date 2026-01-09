@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import re
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
@@ -12,6 +12,7 @@ from app.clients.ollama_client import OllamaClient
 from app.domain.event import Event
 from app.domain.page import Page
 
+logger = logging.getLogger(__name__)
 
 class PageEventExtractor:
   """Extract a single Event from a `Page` by delegating to NLP and date services.
@@ -21,10 +22,14 @@ class PageEventExtractor:
 
   @classmethod
   def extract_events(cls, page: Page) -> Event | None:
-    client = OllamaClient()
+    try:
+      client = OllamaClient()
 
-    event = client.chat_page_extract(page) 
+      event = client.chat_page_extract(page) 
 
-    return event 
+      return event 
+    except Exception as e:
+      logger.error(f"Error extracting event from page {page.page_url}: {e}")
+      return None
 
 __all__ = ["PageEventExtractor"]
