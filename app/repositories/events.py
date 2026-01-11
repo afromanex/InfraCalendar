@@ -173,6 +173,17 @@ class EventsRepository:
             db_events = session.execute(q).scalars().all()
             return [self._db_to_domain(e) for e in db_events]
 
+    def get_events_by_config_id(self, config_id: int, only_valid: bool = True) -> List[Event]:
+        """Get all events for pages with a specific config_id."""
+        with self.get_session() as session:
+            from app.db.models import Page as DBPage
+            q = select(DBEvent).join(DBPage, DBEvent.page_id == DBPage.page_id).where(DBPage.config_id == config_id)
+            if only_valid:
+                q = q.where(DBEvent.is_valid == True)
+            q = q.order_by(DBEvent.dtstart)
+            db_events = session.execute(q).scalars().all()
+            return [self._db_to_domain(e) for e in db_events]
+
     def delete_events_by_page_id(self, page_id: int) -> int:
         """Delete all events for a specific page."""
         with self.get_session() as session:

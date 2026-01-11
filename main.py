@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import crawlers, extractors
+from app.routers import crawlers, extractors, calendars
 
 app = FastAPI(
     title="InfraCalendar API",
@@ -10,6 +10,7 @@ app = FastAPI(
 # Include routers
 app.include_router(crawlers.router)
 app.include_router(extractors.router)
+app.include_router(calendars.router)
 
 
 @app.get("/")
