@@ -48,7 +48,9 @@ class OllamaClient:
                         "Keys must be exactly: summary, description, dtstart, dtend, "
                         "duration, location, url, categories, rrule. "
                         "If a field is not explicitly present in the text, use null. "
-                        "Do not infer missing dates or times."
+                        "Do not infer missing dates or times. "
+                        "IMPORTANT: Only include rrule if the text explicitly mentions recurring/repeating events. "
+                        "Do NOT add rrule for single one-time events."
                     ),
                 },
                 {

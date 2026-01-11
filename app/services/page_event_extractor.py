@@ -33,15 +33,27 @@ class PageEventExtractor:
   
   @staticmethod
   def format_rrule(rrule_obj):
-    """Convert dict rrule to iCalendar RRULE string."""
+    """Convert dict rrule to iCalendar RRULE string, but filter out likely LLM hallucinations."""
     if isinstance(rrule_obj, dict):
+      # Ignore generic DAILY rules without count/until - likely LLM inference
+      freq = rrule_obj.get("freq", "").upper()
+      interval = rrule_obj.get("interval")
+      count = rrule_obj.get("count")
+      until = rrule_obj.get("until")
+      
+      # Filter out generic DAILY/WEEKLY rules without end conditions
+      if freq in ["DAILY", "WEEKLY"] and interval == 1 and not count and not until:
+        return None
+      
       parts = []
-      if rrule_obj.get("freq"):
-        parts.append(f"FREQ={rrule_obj['freq']}")
-      if rrule_obj.get("interval"):
-        parts.append(f"INTERVAL={rrule_obj['interval']}")
-      if rrule_obj.get("count"):
-        parts.append(f"COUNT={rrule_obj['count']}")
+      if freq:
+        parts.append(f"FREQ={freq}")
+      if interval and interval != 1:
+        parts.append(f"INTERVAL={interval}")
+      if count:
+        parts.append(f"COUNT={count}")
+      if until:
+        parts.append(f"UNTIL={until}")
       return ";".join(parts) if parts else None
     return rrule_obj
 
