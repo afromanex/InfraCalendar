@@ -22,13 +22,20 @@ class SingleExtractionResult(BaseModel):
 def is_valid_event(ev: Event) -> bool:
     """Check if extracted event is valid and substantial."""
     if ev is None:
+        print("DEBUG: Event is None, therefore not an event")
         return False
     
     if ev.title is None or ev.start is None:
+        print("DEBUG: Event missing title or start, therefore not an event")
         return False
     
     has_location = ev.location is not None
-    has_description = ev.description is not None and len(ev.description) >= 40
+    if has_location == False: 
+        print("DEBUG: Event missing location")
+            
+    has_description = ev.description is not None and len(ev.description) >= 10
+    if has_description == False:
+        print("DEBUG: Event missing description or description too short")
     
     return has_location or has_description
 
@@ -87,6 +94,7 @@ async def extract_single_event(
     """
     print(f"DEBUG: Extracting single event from page_url={page_url}")
     pages_repo = PagesRepository()
+    events_repo = EventsRepository()
     
     # Get page from database by URL
     page = pages_repo.get_page_by_url(page_url)
@@ -104,8 +112,16 @@ async def extract_single_event(
         return SingleExtractionResult(
             page_url=page_url,
             event=None,
-            error="No event could be extracted from this page"
+            error="No event could be extracted from this page",
+            saved=False
         )
+    
+    # Save to database if requested
+    saved = False
+    if is_valid_event(event):
+        events_repo.upsert_event_by_hash(event, page.page_id)
+        saved = True
+        print(f"DEBUG: Saved event to database: {event.summary}")
     
     # Convert Event to dict for response
     event_dict = {
@@ -130,7 +146,8 @@ async def extract_single_event(
     return SingleExtractionResult(
         page_url=page_url,
         event=event_dict,
-        error=None
+        error=None,
+        saved=saved
     )
     
         

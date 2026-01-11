@@ -90,33 +90,9 @@ class OllamaClient:
 
         data = json.loads(content[start : end + 1])
         
-        try:
-            event = Event(
-                uid=None, 
-                dtstamp=None, 
+        # Return raw data dict for PageEventExtractor to process
+        return data
 
-                dtstart=data.get("dtstart"),
-                dtend=data.get("dtend"),
-                duration=data.get("duration"),
-
-                summary=data.get("summary"),
-                description=data.get("description"),
-                location=data.get("location"),
-                url=page.page_url,
-                categories=data.get("categories", []),
-                rrule=data.get("rrule"),
-
-                # backward compatibility
-                title=data.get("summary"),
-                start=data.get("dtstart"),
-
-                raw=content,
-            )
-
-            return event 
-        except Exception as e:
-            logger.error(f"Failed to parse event from Ollama response for page {page.page_url}: {e} - response content: {content}")
-            return None
 
     async def close(self):
         """Close the HTTP client connection pool."""
