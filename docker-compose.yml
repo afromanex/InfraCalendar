@@ -2,11 +2,12 @@ services:
   infracalendar:
     build: .
     image: infracalendar:latest
-    network_mode: "host" # allows container to reach host localhost:8002 on Linux
+    depends_on:
+      - infracalendar_db
     environment:
       - AUTH_TOKEN=secret
       - OLLAMA_BASE_URL=http://ollama:11434
-      - DATABASE_URL=postgresql://infracalendar:infracalendar_pass@db:15432/infracalendar_db
+      - DATABASE_URL=postgresql://infracalendar:infracalendar_pass@infracalendar_db:5432/infracalendar_db
 
   infracalendar_db:
     image: postgres:14
@@ -18,3 +19,6 @@ services:
       - db_data:/var/lib/postgresql/data
     ports:
       - "15433:5432"
+
+volumes:
+  db_data:
