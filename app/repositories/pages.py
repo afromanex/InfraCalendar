@@ -2,9 +2,9 @@ from typing import Optional, List
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from infracrawl.db.models import Page as DBPage
-from infracrawl.domain import Page
-from infracrawl.db.engine import make_engine
+from app.db.models import Page as DBPage
+from app.domain.page import Page
+from app.db.engine import make_engine
 
 
 class PagesRepository:
@@ -35,7 +35,6 @@ class PagesRepository:
             return Page(
                 page_id=p.page_id,
                 page_url=p.page_url,
-                page_content=p.page_content,
                 plain_text=p.plain_text,
                 http_status=p.http_status,
                 fetched_at=p.fetched_at,
@@ -58,7 +57,6 @@ class PagesRepository:
                 return Page(
                     page_id=p.page_id,
                     page_url=p.page_url,
-                    page_content=p.page_content,
                     plain_text=p.plain_text,
                     http_status=p.http_status,
                     fetched_at=p.fetched_at,
@@ -71,7 +69,6 @@ class PagesRepository:
             return Page(
                 page_id=p.page_id,
                 page_url=p.page_url,
-                page_content=p.page_content,
                 plain_text=p.plain_text,
                 http_status=p.http_status,
                 fetched_at=p.fetched_at,

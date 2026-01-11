@@ -1,6 +1,7 @@
 import os
 from app.clients.crawlers_client import CrawlersClient
 from app.domain.event import Event
+from app.repositories.pages import PagesRepository
 from app.services.page_categorizer import PageCategorizer
 from app.services.page_event_extractor import PageEventExtractor
 
@@ -19,7 +20,9 @@ def is_event(ev: Event) -> bool:
 def main():
 	# token can be provided via AUTH_TOKEN env var (recommended)
 	token = os.environ.get("AUTH_TOKEN", "secret")
-	client = CrawlersClient(token=token)
+	crawlers_url = os.environ.get("CRAWLERS_URL", "http://localhost:8002")
+	client = CrawlersClient(base_url=crawlers_url, token=token)
+	pages_repo = PagesRepository()
 
 	# call export with the requested config
 	pages = client.export(
@@ -29,6 +32,16 @@ def main():
 		limit=100000)
 
 	for p in pages:
+		# Save page to database
+		pages_repo.upsert_page(
+			page_url=p.page_url,
+			page_content=None,  # not including HTML content
+			http_status=p.http_status,
+			fetched_at=p.fetched_at,
+			config_id=p.config_id,
+			plain_text=p.plain_text
+		)
+		
 		ev = PageEventExtractor.extract_events(p)
 		
 		if is_event(ev):
