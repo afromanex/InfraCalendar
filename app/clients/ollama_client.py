@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from tracemalloc import start
 from typing import Dict, List, Optional, Any
 from unittest import result
@@ -12,7 +13,12 @@ from app.domain.page import Page
 logger = logging.getLogger(__name__)
 
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
+OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_URL = f"{OLLAMA_BASE_URL}/api/chat"
+
+# Log the Ollama URL at module load time
+logger.info(f"Ollama client initialized with URL: {OLLAMA_URL}")
+print(f"DEBUG: Ollama URL configured as: {OLLAMA_URL}")
 
 
 class OllamaClient:
