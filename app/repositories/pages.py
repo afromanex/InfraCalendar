@@ -89,7 +89,6 @@ class PagesRepository:
             return [Page(
                 page_id=p.page_id,
                 page_url=p.page_url,
-                page_content=p.page_content if full else None,
                 plain_text=p.plain_text if full else None,
                 http_status=p.http_status,
                 fetched_at=p.fetched_at,
@@ -105,7 +104,6 @@ class PagesRepository:
             return Page(
                 page_id=p.page_id,
                 page_url=p.page_url,
-                page_content=p.page_content,
                 plain_text=p.plain_text,
                 http_status=p.http_status,
                 fetched_at=p.fetched_at,
