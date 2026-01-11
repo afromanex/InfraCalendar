@@ -6,3 +6,15 @@ services:
     environment:
       - AUTH_TOKEN=secret
       - OLLAMA_BASE_URL=http://ollama:11434
+      - DATABASE_URL=postgresql://infracalendar:infracalendar_pass@db:15432/infracalendar_db
+
+  infracalendar_db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: infracalendar
+      POSTGRES_PASSWORD: infracalendar_pass
+      POSTGRES_DB: infracalendar_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "15433:5432"
