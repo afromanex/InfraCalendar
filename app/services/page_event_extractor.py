@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import traceback
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
@@ -21,15 +22,17 @@ class PageEventExtractor:
   """
 
   @classmethod
-  def extract_events(cls, page: Page) -> Event | None:
+  async def extract_events_async(cls, page: Page) -> Event | None:
     try:
       client = OllamaClient()
 
-      event = client.chat_page_extract(page) 
+      event = await client.chat_page_extract_async(page) 
+      await client.close()
 
       return event 
     except Exception as e:
-      logger.error(f"Error extracting event from page {page.page_url}: {e}")
+      print(f"ERROR: Error extracting event from page {page.page_url}: {type(e).__name__}: {str(e)}")
+      print(f"ERROR: Traceback: {traceback.format_exc()}")
       return None
 
 __all__ = ["PageEventExtractor"]

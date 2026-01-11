@@ -4,10 +4,12 @@ services:
     image: infracalendar:latest
     depends_on:
       - infracalendar_db
+      - ollama
     environment:
       - AUTH_TOKEN=secret
       - DATABASE_URL=postgresql://infracalendar:infracalendar_pass@infracalendar_db:5432/infracalendar_db
       - CRAWLERS_URL=http://host.docker.internal:8002
+      - OLLAMA_BASE_URL=http://ollama:11434
     ports:
       - "8003:8000"
     extra_hosts:
@@ -24,5 +26,17 @@ services:
     ports:
       - "15433:5432"
 
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
 volumes:
   db_data:
+  ollama_data:

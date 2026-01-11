@@ -1,21 +1,22 @@
+import asyncio
 import json
 import logging
 import os
-from tracemalloc import start
-from typing import Dict, List, Optional, Any
-from unittest import result
 
-import requests
+import httpx
 
 from app.domain.event import Event
 from app.domain.page import Page
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_BASE_URL = "http://host.docker.internal:11434"
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+
+# Global semaphore to limit concurrent Ollama requests
+_ollama_semaphore = asyncio.Semaphore(2)  # Max 2 concurrent requests to Ollama
 
 class OllamaClient:
-    """Simple client for calling a local Ollama chat endpoint.
+    """Async client for calling a local Ollama chat endpoint.
 
     It sends a user prompt asking the model to return ONLY JSON with a fixed
     set of keys and attempts to parse the model output as JSON.
@@ -24,12 +25,17 @@ class OllamaClient:
     def __init__(self, 
                  url: str = OLLAMA_BASE_URL, 
                  model: str = "qwen2.5:1.5b-instruct", 
-                 timeout: int = 60):
+                 timeout: int = 120):
         self.url = url
         self.model = model
         self.timeout = timeout
+        # Shared async client with connection pooling
+        self._client = httpx.AsyncClient(
+            timeout=httpx.Timeout(timeout),
+            limits=httpx.Limits(max_connections=10, max_keepalive_connections=5)
+        )
 
-    def chat_page_extract(self, page: Page) -> Event: 
+    async def chat_page_extract_async(self, page: Page) -> Event: 
         payload = {
             "model": self.model,
             "stream": False,
@@ -60,16 +66,18 @@ class OllamaClient:
             },
         }
         
-        print(f"DEBUG: OllamaClient.chat_page_extract - sending request for page_url={page.page_url}")
-        request_url = f"{self.url}/api/chat"
-        resp = requests.post(
-            request_url,
-            json=payload,
-            timeout=120,
+        print(f"DEBUG: OllamaClient.chat_page_extract_async - acquiring semaphore for page_url={page.page_url}")
+        async with _ollama_semaphore:
+            print(f"DEBUG: OllamaClient.chat_page_extract_async - sending request for page_url={page.page_url}")
+            request_url = f"{self.url}/api/chat"
+            resp = await self._client.post(
+                request_url,
+                json=payload,
             )
-        print(f"DEBUG: OllamaClient.chat_page_extract - received response status_code={resp.status_code} for page_url={page.page_url}")
+        print(f"DEBUG: OllamaClient.chat_page_extract_async - received response status_code={resp.status_code} for page_url={page.page_url}")
         
         content = resp.json()["message"]["content"].strip()
+        print(f'DEBUG: OllamaClient.chat_page_extract_async - response content for page_url={page.page_url}: {content}')
         #dubugging info
         #print(f"OllamaClient.chat_page_extract: {page.page_url}")
         #print(f"- resp: {content}")
@@ -109,6 +117,10 @@ class OllamaClient:
         except Exception as e:
             logger.error(f"Failed to parse event from Ollama response for page {page.page_url}: {e} - response content: {content}")
             return None
+
+    async def close(self):
+        """Close the HTTP client connection pool."""
+        await self._client.aclose()
 
 
 __all__ = ["OllamaClient"]
