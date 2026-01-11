@@ -12,14 +12,7 @@ from app.domain.page import Page
 
 logger = logging.getLogger(__name__)
 
-
-OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_URL = f"{OLLAMA_BASE_URL}/api/chat"
-
-# Log the Ollama URL at module load time
-logger.info(f"Ollama client initialized with URL: {OLLAMA_URL}")
-print(f"DEBUG: Ollama URL configured as: {OLLAMA_URL}")
-
+OLLAMA_BASE_URL = "http://host.docker.internal:11434"
 
 class OllamaClient:
     """Simple client for calling a local Ollama chat endpoint.
@@ -29,63 +22,12 @@ class OllamaClient:
     """
 
     def __init__(self, 
-                 url: str = OLLAMA_URL, 
+                 url: str = OLLAMA_BASE_URL, 
                  model: str = "qwen2.5:1.5b-instruct", 
                  timeout: int = 60):
         self.url = url
         self.model = model
         self.timeout = timeout
-
-    def chat_is_event(self, page: Page) -> bool:
-
-        payload = {
-            "model": self.model,
-            "stream": False,
-            "messages": [
-                {
-                "role": "system",
-                "content": (
-                    "You are a strict classifier.\n"
-                    "Return ONLY true or false.\n"
-                    "Answer true ONLY if the text includes at least ONE specific event with a time anchor "
-                    "(a date or a day/time like 'Jan 12', 'tomorrow 3pm', 'next Tuesday', etc.).\n"
-                    "If the text is a homepage, navigation, general info about a venue/organization, or mentions events "
-                    "without a specific date/time, return false.\n"
-                    "Do NOT guess dates.\n"
-                    "No punctuation. No explanation."
-                ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        "Decide if this text contains at least one EVENT INSTANCE with an explicit time anchor.\n"
-                        "Time anchor must be present in the text as a DATE or RELATIVE DATE/TIME.\n"
-                        "Valid anchors examples: 'Jan 12', 'January 12, 2026', '2026-01-12', 'tomorrow', 'next Tuesday', '3pm', '10:00 AM'.\n"
-                        "If you cannot quote an anchor substring from the text, answer false.\n"
-                        "Return ONLY true or false.\n\n"
-                        f"{page.plain_text[:6000]}"
-                    )
-                    }
-            ],
-            "options": {"temperature": 0},
-        }
-
-
-        resp = requests.post(
-            self.url,
-            json=payload,
-            timeout=120,
-            )
-        
-        result = resp.json()["message"]["content"].strip().lower()
-
-        #debugging info
-        #print(f"OllamaClient.chat_is_event: {page.page_url}")
-        #print(f"resp: {result}")
-
-        is_event = result == "true"
-
-        return is_event
 
     def chat_page_extract(self, page: Page) -> Event: 
         payload = {
@@ -117,12 +59,15 @@ class OllamaClient:
                 "top_p": 0.1,
             },
         }
-       
+        
+        print(f"DEBUG: OllamaClient.chat_page_extract - sending request for page_url={page.page_url}")
+        request_url = f"{self.url}/api/chat"
         resp = requests.post(
-            self.url,
+            request_url,
             json=payload,
             timeout=120,
             )
+        print(f"DEBUG: OllamaClient.chat_page_extract - received response status_code={resp.status_code} for page_url={page.page_url}")
         
         content = resp.json()["message"]["content"].strip()
         #dubugging info

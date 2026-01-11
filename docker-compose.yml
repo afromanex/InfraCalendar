@@ -6,7 +6,6 @@ services:
       - infracalendar_db
     environment:
       - AUTH_TOKEN=secret
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - DATABASE_URL=postgresql://infracalendar:infracalendar_pass@infracalendar_db:5432/infracalendar_db
       - CRAWLERS_URL=http://host.docker.internal:8002
     ports:

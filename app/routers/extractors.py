@@ -9,27 +9,10 @@ from app.services.page_event_extractor import PageEventExtractor
 
 router = APIRouter(prefix="/extractors", tags=["Extractors"])
 
-
-class ExtractedEvent(BaseModel):
-    page_url: str
-    page_id: Optional[int]
-    title: Optional[str]
-    start: Optional[str]
-    end: Optional[str]
-    location: Optional[dict]
-    description: Optional[str]
-    
-    class Config:
-        from_attributes = True
-
-
 class ExtractionResult(BaseModel):
     total_pages: int
-    events_extracted: int
     events_saved: int
-    pages_without_events: int
-    events: List[ExtractedEvent]
-
+    extraction_version: Optional[str] = None
 
 def is_valid_event(ev: Event) -> bool:
     """Check if extracted event is valid and substantial."""
@@ -65,58 +48,29 @@ async def extract_events(
         pages = pages_repo.fetch_pages(full=True, limit=limit, config_id=config_id)
         print(f"DEBUG: Fetched {len(pages)} pages from database")
         
-        extracted_events = []
-        pages_without_events = 0
         events_saved = 0
-        
-        for idx, page in enumerate(pages):
-            print(f"DEBUG: [{idx+1}/{len(pages)}] Processing: {page.page_url}")
-            try:
-                # Extract event from page
-                print(f"DEBUG: About to call PageEventExtractor.extract_events")
-                event = PageEventExtractor.extract_events(page)
-                print(f"DEBUG: Extraction returned: event={event}, type={type(event)}")
-                if event:
-                    print(f"DEBUG: Event fields - title={event.title}, start={event.start}, location={event.location}")
-                
-                if is_valid_event(event):
-                    extracted_events.append(ExtractedEvent(
-                        page_url=page.page_url,
-                        page_id=page.page_id,
-                        title=event.title,
-                        start=event.start,
-                        end=event.end,
-                        location=event.location,
-                        description=event.description
-                    ))
-                    
-                    # Save to database if requested
-                    if save_to_db and page.page_id:
-                        events_repo.upsert_event_by_hash(
-                            event=event,
-                            page_id=page.page_id,
-                            extraction_version=extraction_version
-                        )
-                        events_saved += 1
-                else:
-                    pages_without_events += 1
-            except Exception as e:
-                # Log error but continue processing
-                print(f"ERROR: Exception extracting event from page {page.page_url}")
-                print(f"ERROR: Exception type: {type(e).__name__}")
-                print(f"ERROR: Exception message: {str(e)}")
-                import traceback
-                print(f"ERROR: Traceback: {traceback.format_exc()}")
-                pages_without_events += 1
-        
+        for page in pages:
+
+            # Extract event from page
+            print(f"DEBUG: Extracting event from page_url={page.page_url}")
+            event = PageEventExtractor.extract_events(page)
+
+            if is_valid_event(event) == False:
+                print(f"DEBUG: No event found from page_url={page.page_url}")
+                continue 
+            
+            print(f"DEBUG: Found from page_url={page.page_url}")
+            print(f"DEBUG: Event: {event}")
+
+            events_repo.upsert_event_by_hash(event)
+            events_saved += 1
+            
         print(f"DEBUG: Extraction complete. Saved: {events_saved}")
         
         return ExtractionResult(
             total_pages=len(pages),
-            events_extracted=len(extracted_events),
             events_saved=events_saved,
-            pages_without_events=pages_without_events,
-            events=extracted_events
+            extraction_version=extraction_version
         )
     
     except Exception as e:
