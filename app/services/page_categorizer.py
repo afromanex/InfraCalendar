@@ -20,11 +20,6 @@ class PageCategorizer:
         self.ollama_client = ollama_client
         self.min_description_length = min_description_length
     
-    def is_calendar(self, page: Optional[Page] = None) -> bool:
-        """Check if a page contains calendar/event information."""
-        is_event = self.ollama_client.chat_is_event(page)
-        return is_event
-    
     def is_valid_event(self, ev: Event) -> bool:
         """Check if extracted event is valid and substantial."""
         if ev is None:
