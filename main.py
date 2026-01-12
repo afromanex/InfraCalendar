@@ -7,6 +7,7 @@ container = Container()
 
 # Initialize routers with dependencies from container
 extractors.router = extractors.create_extractors_router(container)
+calendars.router = calendars.create_calendars_router(container)
 
 app = FastAPI(
     title="InfraCalendar API",

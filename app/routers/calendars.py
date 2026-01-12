@@ -6,8 +6,6 @@ from app.repositories.events import EventsRepository
 from app.services.ical_formatting_service import ICalFormattingService
 from app.domain.event import Event
 
-router = APIRouter(prefix="/calendars", tags=["Calendars"])
-
 
 class EventResponse(BaseModel):
     uid: Optional[str] = None
@@ -24,69 +22,110 @@ class EventResponse(BaseModel):
     start: Optional[str] = None
 
 
-@router.get("/{config_id}/events", response_model=List[EventResponse])
-async def get_events_by_config(config_id: int):
-    """
-    Get all events associated with a config_id as JSON.
+class CalendarsRouter:
+    """Router for calendar export endpoints."""
     
-    Returns:
-        List of events in JSON format
-    """
-    events_repo = EventsRepository()
+    def __init__(
+        self,
+        events_repo: EventsRepository,
+        ical_service: ICalFormattingService
+    ):
+        """
+        Initialize router with dependencies.
+        
+        Args:
+            events_repo: Repository for accessing events
+            ical_service: Service for formatting iCalendar output
+        """
+        self.events_repo = events_repo
+        self.ical_service = ical_service
+        self.router = APIRouter(prefix="/calendars", tags=["Calendars"])
+        self._register_routes()
     
-    # Get all events for this config_id
-    events = events_repo.get_events_by_config_id(config_id, only_valid=True)
-    
-    if not events:
-        raise HTTPException(status_code=404, detail=f"No events found for config_id={config_id}")
-    
-    # Convert to response format
-    return [
-        EventResponse(
-            uid=event.uid,
-            dtstart=event.dtstart,
-            dtend=event.dtend,
-            duration=event.duration,
-            summary=event.summary,
-            description=event.description,
-            location=event.location,
-            url=event.url,
-            categories=event.categories or [],
-            rrule=event.rrule,
-            title=event.title,
-            start=event.start
+    def _register_routes(self):
+        """Register all routes with the router."""
+        self.router.add_api_route(
+            "/{config_id}/events",
+            self.get_events_by_config,
+            methods=["GET"],
+            response_model=List[EventResponse]
         )
-        for event in events
-    ]
+        self.router.add_api_route(
+            "/{config_id}/ical",
+            self.get_ical_by_config,
+            methods=["GET"]
+        )
+    
+    async def get_events_by_config(self, config_id: int) -> List[EventResponse]:
+        """
+        Get all events associated with a config_id as JSON.
+        
+        Returns:
+            List of events in JSON format
+        """
+        # Get all events for this config_id
+        events = self.events_repo.get_events_by_config_id(config_id, only_valid=True)
+        
+        if not events:
+            raise HTTPException(status_code=404, detail=f"No events found for config_id={config_id}")
+        
+        # Convert to response format
+        return [
+            EventResponse(
+                uid=event.uid,
+                dtstart=event.dtstart,
+                dtend=event.dtend,
+                duration=event.duration,
+                summary=event.summary,
+                description=event.description,
+                location=event.location,
+                url=event.url,
+                categories=event.categories or [],
+                rrule=event.rrule,
+                title=event.title,
+                start=event.start
+            )
+            for event in events
+        ]
+
+    async def get_ical_by_config(self, config_id: int) -> Response:
+        """
+        Generate an iCalendar (.ics) file for all events associated with a config_id.
+        
+        Returns:
+            iCalendar formatted text file with all events from pages with the specified config_id
+        """
+        # Get all events for this config_id
+        events = self.events_repo.get_events_by_config_id(config_id, only_valid=True)
+        
+        if not events:
+            raise HTTPException(status_code=404, detail=f"No events found for config_id={config_id}")
+        
+        # Generate iCalendar content
+        ical_content = self.ical_service.format_ical(
+            events, 
+            calendar_name=f"InfraCalendar-{config_id}"
+        )
+        
+        # Return as downloadable .ics file
+        return Response(
+            content=ical_content,
+            media_type="text/calendar",
+            headers={
+                "Content-Disposition": f"attachment; filename=calendar-{config_id}.ics"
+            }
+        )
 
 
-@router.get("/{config_id}/ical")
-async def get_ical_by_config(config_id: int):
-    """
-    Generate an iCalendar (.ics) file for all events associated with a config_id.
-    
-    Returns:
-        iCalendar formatted text file with all events from pages with the specified config_id
-    """
-    events_repo = EventsRepository()
-    
-    # Get all events for this config_id
-    events = events_repo.get_events_by_config_id(config_id, only_valid=True)
-    
-    if not events:
-        raise HTTPException(status_code=404, detail=f"No events found for config_id={config_id}")
-    
-    # Generate iCalendar content
-    ical_content = ICalFormattingService.format_ical(
-        events, 
-        calendar_name=f"InfraCalendar-{config_id}"
+# Factory function to create router with dependencies from container
+def create_calendars_router(container) -> APIRouter:
+    """Create and configure the calendars router with dependencies from container."""
+    calendars_router = CalendarsRouter(
+        events_repo=container.events_repository(),
+        ical_service=container.ical_formatting_service()
     )
-    
-    # Return as downloadable .ics file
-    return Response(
-        content=ical_content,
-        media_type="text/calendar",
-        headers={
-            "Content-Disposition": f"attachment; filename=calendar-{config_id}.ics"
-        }
-    )
+    return calendars_router.router
+
+
+# Note: router is now initialized in main.py with container
+router = None

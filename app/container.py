@@ -32,3 +32,7 @@ class Container(containers.DeclarativeContainer):
 		events_repository=events_repository,
 		extractor=page_event_extractor
 	)
+	
+	ical_formatting_service = providers.Singleton(
+		"app.services.ical_formatting_service.ICalFormattingService"
+	)
