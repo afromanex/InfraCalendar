@@ -6,6 +6,7 @@ from app.container import Container
 container = Container()
 
 # Initialize routers with dependencies from container
+crawlers.router = crawlers.create_crawlers_router(container)
 extractors.router = extractors.create_extractors_router(container)
 calendars.router = calendars.create_calendars_router(container)
 

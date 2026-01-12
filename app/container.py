@@ -1,4 +1,5 @@
 """Dependency injection container for the application."""
+import os
 from dependency_injector import containers, providers
 
 
@@ -11,6 +12,12 @@ class Container(containers.DeclarativeContainer):
 	# Clients - Singleton to reuse connection pools
 	ollama_client = providers.Singleton(
 		"app.clients.ollama_client.OllamaClient"
+	)
+	
+	crawlers_client = providers.Singleton(
+		"app.clients.crawlers_client.CrawlersClient",
+		base_url=os.environ.get("CRAWLERS_URL", "http://localhost:8002"),
+		token=os.environ.get("AUTH_TOKEN", "secret")
 	)
 	
 	# Repositories - Factory creates new instance per request

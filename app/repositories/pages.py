@@ -41,17 +41,25 @@ class PagesRepository:
                 config_id=p.config_id
             )
 
-    def upsert_page(self, page_url: str, page_content: Optional[str], http_status: Optional[int], fetched_at: Optional[str], config_id: Optional[int] = None, plain_text: Optional[str] = None) -> Page:
+    def upsert_page(self, page: Page) -> Page:
+        """Upsert a page into the database.
+        
+        Args:
+            page: Page domain object to upsert
+            
+        Returns:
+            The upserted Page with updated page_id
+        """
         with self.get_session() as session:
-            q = select(DBPage).where(DBPage.page_url == page_url)
+            q = select(DBPage).where(DBPage.page_url == page.page_url)
             p = session.execute(q).scalars().first()
             if p:
-                p.page_content = page_content
-                p.plain_text = plain_text
-                p.http_status = http_status
-                p.fetched_at = fetched_at
-                if config_id is not None:
-                    p.config_id = config_id
+                p.page_content = getattr(page, 'page_content', None)
+                p.plain_text = page.plain_text
+                p.http_status = page.http_status
+                p.fetched_at = page.fetched_at
+                if page.config_id is not None:
+                    p.config_id = page.config_id
                 session.add(p)
                 session.commit()
                 return Page(
@@ -62,7 +70,14 @@ class PagesRepository:
                     fetched_at=p.fetched_at,
                     config_id=p.config_id,
                 )
-            p = DBPage(page_url=page_url, page_content=page_content, plain_text=plain_text, http_status=http_status, fetched_at=fetched_at, config_id=config_id)
+            p = DBPage(
+                page_url=page.page_url,
+                page_content=getattr(page, 'page_content', None),
+                plain_text=page.plain_text,
+                http_status=page.http_status,
+                fetched_at=page.fetched_at,
+                config_id=page.config_id
+            )
             session.add(p)
             session.commit()
             session.refresh(p)
@@ -94,6 +109,24 @@ class PagesRepository:
                 fetched_at=p.fetched_at,
                 config_id=p.config_id
             ) for p in rows]
+
+    def delete_pages_by_config_id(self, config_id: int) -> int:
+        """Delete all pages for a given config_id.
+        
+        Args:
+            config_id: The config ID to delete pages for
+            
+        Returns:
+            Number of pages deleted
+        """
+        with self.get_session() as session:
+            q = select(DBPage).where(DBPage.config_id == config_id)
+            pages = session.execute(q).scalars().all()
+            count = len(pages)
+            for page in pages:
+                session.delete(page)
+            session.commit()
+            return count
 
     def get_page_by_id(self, page_id: int) -> Optional[Page]:
         with self.get_session() as session:
