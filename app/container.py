@@ -29,6 +29,10 @@ class Container(containers.DeclarativeContainer):
 	)
 	
 	# Services
+	page_date_service = providers.Singleton(
+		"app.services.page_date_service.PageDateService"
+	)
+	
 	page_categorizer = providers.Factory(
 		"app.services.page_categorizer.PageCategorizer",
 		ollama_client=ollama_client,
@@ -37,7 +41,8 @@ class Container(containers.DeclarativeContainer):
 	
 	page_event_extractor = providers.Factory(
 		"app.services.page_event_extractor.PageEventExtractor",
-		ollama_client=ollama_client
+		ollama_client=ollama_client,
+		date_service=page_date_service
 	)
 	
 	page_event_service = providers.Factory(

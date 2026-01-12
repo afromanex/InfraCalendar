@@ -11,6 +11,7 @@ from dateutil.tz import gettz
 from app.clients.ollama_client import OllamaClient
 from app.domain.event import Event
 from app.domain.page import Page
+from app.services.page_date_service import PageDateService
 
 logger = logging.getLogger(__name__)
 
@@ -20,50 +21,15 @@ class PageEventExtractor:
   Returns an `Event` instance when a sensible start time is found, otherwise `None`.
   """
 
-  def __init__(self, ollama_client: OllamaClient):
+  def __init__(self, ollama_client: OllamaClient, date_service: PageDateService):
     """Initialize with dependencies.
     
     Args:
       ollama_client: Client for communicating with Ollama
+      date_service: Service for date formatting and normalization
     """
     self.client = ollama_client
-
-  @staticmethod
-  def format_date(date_obj):
-    """Convert dict date to ISO string format."""
-    if isinstance(date_obj, dict):
-      year = date_obj.get("year")
-      month = date_obj.get("month", 1)
-      day = date_obj.get("day", 1)
-      if year:
-        return f"{year:04d}-{month:02d}-{day:02d}"
-    return date_obj
-  
-  @staticmethod
-  def format_rrule(rrule_obj):
-    """Convert dict rrule to iCalendar RRULE string, but filter out likely LLM hallucinations."""
-    if isinstance(rrule_obj, dict):
-      # Ignore generic DAILY rules without count/until - likely LLM inference
-      freq = rrule_obj.get("freq", "").upper()
-      interval = rrule_obj.get("interval")
-      count = rrule_obj.get("count")
-      until = rrule_obj.get("until")
-      
-      # Filter out generic DAILY/WEEKLY rules without end conditions
-      if freq in ["DAILY", "WEEKLY"] and interval == 1 and not count and not until:
-        return None
-      
-      parts = []
-      if freq:
-        parts.append(f"FREQ={freq}")
-      if interval and interval != 1:
-        parts.append(f"INTERVAL={interval}")
-      if count:
-        parts.append(f"COUNT={count}")
-      if until:
-        parts.append(f"UNTIL={until}")
-      return ";".join(parts) if parts else None
-    return rrule_obj
+    self.date_service = date_service
 
   async def extract_events_async(self, page: Page) -> Event | None:
     try:
@@ -73,9 +39,9 @@ class PageEventExtractor:
         return None
       
       # Format dates and rrule for database compatibility
-      dtstart_val = self.format_date(data.get("dtstart"))
-      dtend_val = self.format_date(data.get("dtend"))
-      rrule_val = self.format_rrule(data.get("rrule"))
+      dtstart_val = self.date_service.format_date(data.get("dtstart"))
+      dtend_val = self.date_service.format_date(data.get("dtend"))
+      rrule_val = self.date_service.format_rrule(data.get("rrule"))
       
       # Create Event with formatted data
       event = Event(
