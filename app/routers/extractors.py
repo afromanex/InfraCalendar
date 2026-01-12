@@ -38,6 +38,7 @@ async def extract_events(
     events_repo = EventsRepository()
     ollama_client = OllamaClient()
     extractor = PageEventExtractor(ollama_client)
+    event_service = PageEventService(events_repo, extractor)
     
     # Get pages from database
     pages = pages_repo.fetch_pages(full=True, limit=limit, config_id=config_id)
@@ -45,19 +46,16 @@ async def extract_events(
     
     events_saved = 0
     for page in pages:
-
-        # Extract event from page
+        # Extract and save event
         print(f"DEBUG: Extracting event from page_url={page.page_url}")
-        event = await extractor.extract_events_async(page)
+        event = await event_service.extract_and_save(page)
 
-        if not PageCategorizer.is_valid_event(event):
+        if event is None:
             print(f"DEBUG: No event found from page_url={page.page_url}")
             continue 
         
-        print(f"DEBUG: Found from page_url={page.page_url}")
+        print(f"DEBUG: Found and saved event from page_url={page.page_url}")
         print(f"DEBUG: Event: {event}")
-
-        events_repo.upsert_event_by_hash(event)
         events_saved += 1
         
     print(f"DEBUG: Extraction complete. Saved: {events_saved}")
