@@ -20,6 +20,14 @@ class PageEventExtractor:
   Returns an `Event` instance when a sensible start time is found, otherwise `None`.
   """
 
+  def __init__(self, ollama_client: OllamaClient):
+    """Initialize with dependencies.
+    
+    Args:
+      ollama_client: Client for communicating with Ollama
+    """
+    self.client = ollama_client
+
   @staticmethod
   def format_date(date_obj):
     """Convert dict date to ISO string format."""
@@ -57,21 +65,17 @@ class PageEventExtractor:
       return ";".join(parts) if parts else None
     return rrule_obj
 
-  @classmethod
-  async def extract_events_async(cls, page: Page) -> Event | None:
+  async def extract_events_async(self, page: Page) -> Event | None:
     try:
-      client = OllamaClient()
-
-      data = await client.chat_page_extract_async(page) 
-      await client.close()
+      data = await self.client.chat_page_extract_async(page)
 
       if not data:
         return None
       
       # Format dates and rrule for database compatibility
-      dtstart_val = cls.format_date(data.get("dtstart"))
-      dtend_val = cls.format_date(data.get("dtend"))
-      rrule_val = cls.format_rrule(data.get("rrule"))
+      dtstart_val = self.format_date(data.get("dtstart"))
+      dtend_val = self.format_date(data.get("dtend"))
+      rrule_val = self.format_rrule(data.get("rrule"))
       
       # Create Event with formatted data
       event = Event(

@@ -6,6 +6,9 @@ from app.domain.event import Event
 from app.repositories.pages import PagesRepository
 from app.repositories.events import EventsRepository
 from app.services.page_event_extractor import PageEventExtractor
+from app.services.page_categorizer import PageCategorizer
+from app.services.page_event_extract_and_save import PageEventService
+from app.clients.ollama_client import OllamaClient
 
 router = APIRouter(prefix="/extractors", tags=["Extractors"])
 
@@ -18,26 +21,6 @@ class SingleExtractionResult(BaseModel):
     page_url: str
     event: Optional[dict] = None
     error: Optional[str] = None
-
-def is_valid_event(ev: Event) -> bool:
-    """Check if extracted event is valid and substantial."""
-    if ev is None:
-        print("DEBUG: Event is None, therefore not an event")
-        return False
-    
-    if ev.title is None or ev.start is None:
-        print("DEBUG: Event missing title or start, therefore not an event")
-        return False
-    
-    has_location = ev.location is not None
-    if has_location == False: 
-        print("DEBUG: Event missing location")
-            
-    has_description = ev.description is not None and len(ev.description) >= 10
-    if has_description == False:
-        print("DEBUG: Event missing description or description too short")
-    
-    return has_location or has_description
 
 
 @router.post("/extract", response_model=ExtractionResult)
@@ -53,6 +36,8 @@ async def extract_events(
     print(f"DEBUG: Starting extraction with limit={limit}, config_id={config_id}")
     pages_repo = PagesRepository()
     events_repo = EventsRepository()
+    ollama_client = OllamaClient()
+    extractor = PageEventExtractor(ollama_client)
     
     # Get pages from database
     pages = pages_repo.fetch_pages(full=True, limit=limit, config_id=config_id)
@@ -63,9 +48,9 @@ async def extract_events(
 
         # Extract event from page
         print(f"DEBUG: Extracting event from page_url={page.page_url}")
-        event = await PageEventExtractor.extract_events_async(page)
+        event = await extractor.extract_events_async(page)
 
-        if is_valid_event(event) == False:
+        if not PageCategorizer.is_valid_event(event):
             print(f"DEBUG: No event found from page_url={page.page_url}")
             continue 
         
@@ -95,6 +80,9 @@ async def extract_single_event(
     print(f"DEBUG: Extracting single event from page_url={page_url}")
     pages_repo = PagesRepository()
     events_repo = EventsRepository()
+    ollama_client = OllamaClient()
+    extractor = PageEventExtractor(ollama_client)
+    event_service = PageEventService(events_repo, extractor)
     
     # Get page from database by URL
     page = pages_repo.get_page_by_url(page_url)
@@ -105,8 +93,8 @@ async def extract_single_event(
             detail=f"Page not found in database: {page_url}"
         )
     
-    # Extract event from page
-    event = await PageEventExtractor.extract_events_async(page)
+    # Extract and save event
+    event = await event_service.extract_and_save(page)
     
     if event is None:
         return SingleExtractionResult(
@@ -115,13 +103,6 @@ async def extract_single_event(
             error="No event could be extracted from this page",
             saved=False
         )
-    
-    # Save to database if requested
-    saved = False
-    if is_valid_event(event):
-        events_repo.upsert_event_by_hash(event, page.page_id)
-        saved = True
-        print(f"DEBUG: Saved event to database: {event.summary}")
     
     # Convert Event to dict for response
     event_dict = {
@@ -141,13 +122,13 @@ async def extract_single_event(
         "raw": event.raw
     }
     
-    print(f"DEBUG: Successfully extracted event: {event.summary}")
+    print(f"DEBUG: Successfully extracted and saved event: {event.summary}")
     
     return SingleExtractionResult(
         page_url=page_url,
         event=event_dict,
         error=None,
-        saved=saved
+        saved=True
     )
     
         
