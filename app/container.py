@@ -29,6 +29,12 @@ class Container(containers.DeclarativeContainer):
 	)
 	
 	# Services
+	page_categorizer = providers.Factory(
+		"app.services.page_categorizer.PageCategorizer",
+		ollama_client=ollama_client,
+		min_description_length=10
+	)
+	
 	page_event_extractor = providers.Factory(
 		"app.services.page_event_extractor.PageEventExtractor",
 		ollama_client=ollama_client
@@ -37,7 +43,8 @@ class Container(containers.DeclarativeContainer):
 	page_event_service = providers.Factory(
 		"app.services.page_event_extract_and_save.PageEventService",
 		events_repository=events_repository,
-		extractor=page_event_extractor
+		extractor=page_event_extractor,
+		categorizer=page_categorizer
 	)
 	
 	ical_formatting_service = providers.Singleton(

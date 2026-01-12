@@ -13,7 +13,8 @@ class PageEventService:
     def __init__(
         self,
         events_repository: EventsRepository,
-        extractor: PageEventExtractor
+        extractor: PageEventExtractor,
+        categorizer: PageCategorizer
     ):
         """
         Initialize the service with dependencies.
@@ -21,9 +22,11 @@ class PageEventService:
         Args:
             events_repository: Repository for persisting events
             extractor: PageEventExtractor instance
+            categorizer: PageCategorizer instance
         """
         self.events_repo = events_repository
         self.extractor = extractor
+        self.categorizer = categorizer
     
     async def extract_and_save(self, page: Page) -> Optional[Event]:
         """
@@ -38,7 +41,7 @@ class PageEventService:
         # Extract event from page
         event = await self.extractor.extract_events_async(page)
         
-        if event is None or not PageCategorizer.is_valid_event(event):
+        if event is None or not self.categorizer.is_valid_event(event):
             return None
         
         # Save to database
