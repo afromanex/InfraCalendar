@@ -3,11 +3,11 @@ from typing import Optional
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 
-from app import config
+from app.config import DATABASE_URL
 
 
 def make_engine(database_url: Optional[str] = None) -> Engine:
-    database_url = database_url or config.DATABASE_URL
+    database_url = database_url or DATABASE_URL
     if not database_url:
         raise RuntimeError("DATABASE_URL not set")
     engine = create_engine(database_url)

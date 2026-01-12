@@ -1,5 +1,12 @@
 from fastapi import FastAPI
 from app.routers import crawlers, extractors, calendars
+from app.container import Container
+
+# Initialize dependency injection container
+container = Container()
+
+# Initialize routers with dependencies from container
+extractors.router = extractors.create_extractors_router(container)
 
 app = FastAPI(
     title="InfraCalendar API",
