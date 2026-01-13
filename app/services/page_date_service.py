@@ -7,13 +7,20 @@ class PageDateService:
 
     @staticmethod
     def format_date(date_obj):
-        """Convert dict date to ISO string format with year validation.
+        """Convert dict or string date to ISO string format with year validation.
+        
+        Handles:
+        - Dict with year/month/day keys
+        - Human-readable strings like "Saturday, February 14, 2026"
+        - ISO strings (passed through)
         
         If the year results in a date more than 1 year in the past, 
         adjusts to the next occurrence of that month/day.
         """
         from datetime import datetime, timedelta
+        from dateutil import parser as dtparser
         
+        # Handle dict format
         if isinstance(date_obj, dict):
             year = date_obj.get("year")
             month = date_obj.get("month", 1)
@@ -39,6 +46,30 @@ class PageDateService:
                     pass
                 
                 return f"{year:04d}-{month:02d}-{day:02d}"
+        
+        # Handle string format (e.g., "Saturday, February 14, 2026")
+        elif isinstance(date_obj, str):
+            # If already in ISO format (YYYY-MM-DD), return as-is
+            if len(date_obj) == 10 and date_obj[4] == '-' and date_obj[7] == '-':
+                return date_obj
+            
+            # Try to parse human-readable date strings
+            try:
+                parsed_date = dtparser.parse(date_obj)
+                # Apply same year validation
+                now = datetime.now()
+                if parsed_date < now - timedelta(days=365):
+                    year = now.year
+                    candidate = parsed_date.replace(year=year)
+                    if candidate < now - timedelta(days=30):
+                        year = now.year + 1
+                    parsed_date = parsed_date.replace(year=year)
+                
+                return parsed_date.strftime("%Y-%m-%d")
+            except (ValueError, TypeError):
+                # If parsing fails, return as-is
+                return date_obj
+        
         return date_obj
     
     @staticmethod

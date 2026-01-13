@@ -57,7 +57,7 @@ class ExtractorsRouter:
     async def extract_events(
         self,
         limit: Optional[int] = Query(None, description="Max number of pages to process"),
-        config_id: Optional[int] = Query(None, description="Filter by config_id"),
+        config_id: Optional[str] = Query(None, description="Filter by config name (e.g., starkparks.yml)"),
         extraction_version: Optional[str] = Query("v1", description="Extraction version identifier")
     ) -> ExtractionResult:
         """

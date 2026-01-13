@@ -56,14 +56,14 @@ class CalendarsRouter:
             methods=["GET"]
         )
     
-    async def get_events_by_config(self, config_id: int) -> List[EventResponse]:
+    async def get_events_by_config(self, config_id: str) -> List[EventResponse]:
         """
-        Get all events associated with a config_id as JSON.
+        Get all events associated with a config name as JSON.
         
         Returns:
             List of events in JSON format
         """
-        # Get all events for this config_id
+        # Get all events for this config
         events = self.events_repo.get_events_by_config_id(config_id, only_valid=True)
         
         if not events:
@@ -88,14 +88,14 @@ class CalendarsRouter:
             for event in events
         ]
 
-    async def get_ical_by_config(self, config_id: int) -> Response:
+    async def get_ical_by_config(self, config_id: str) -> Response:
         """
-        Generate an iCalendar (.ics) file for all events associated with a config_id.
+        Generate an iCalendar (.ics) file for all events associated with a config name.
         
         Returns:
-            iCalendar formatted text file with all events from pages with the specified config_id
+            iCalendar formatted text file with all events from pages with the specified config
         """
-        # Get all events for this config_id
+        # Get all events for this config
         events = self.events_repo.get_events_by_config_id(config_id, only_valid=True)
         
         if not events:

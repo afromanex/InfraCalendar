@@ -90,7 +90,7 @@ class PagesRepository:
                 config_id=p.config_id,
             )
 
-    def fetch_pages(self, full: bool = False, limit: Optional[int] = None, offset: Optional[int] = None, config_id: Optional[int] = None) -> List[Page]:
+    def fetch_pages(self, full: bool = False, limit: Optional[int] = None, offset: Optional[int] = None, config_id: Optional[str] = None) -> List[Page]:
         with self.get_session() as session:
             q = select(DBPage)
             if config_id is not None:
@@ -143,7 +143,7 @@ class PagesRepository:
                 config_id=p.config_id
             )
 
-    def get_page_ids_by_config(self, config_id: int) -> List[int]:
+    def get_page_ids_by_config(self, config_id: str) -> List[int]:
         with self.get_session() as session:
             q = select(DBPage.page_id).where(DBPage.config_id == config_id)
             rows = session.execute(q).scalars().all()
