@@ -8,5 +8,5 @@ class Page:
     page_url: Optional[str]
     http_status: Optional[int]
     fetched_at: Optional[str]
-    config_id: Optional[int]
+    config_id: Optional[str]  # Config name (e.g., 'starkparks.yml')
     plain_text: Optional[str]

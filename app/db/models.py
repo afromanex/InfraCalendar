@@ -14,7 +14,7 @@ class Page(Base):
     plain_text = Column(Text, nullable=True)
     http_status = Column(Integer, nullable=True)
     fetched_at = Column(DateTime(timezone=True), nullable=True)
-    config_id = Column(Integer, nullable=True)
+    config_id = Column(Text, nullable=True)  # Config name (e.g., 'starkparks.yml')
 
     # Relationship to events
     events = relationship("Event", back_populates="page", cascade="all, delete-orphan")

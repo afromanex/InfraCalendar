@@ -173,8 +173,8 @@ class EventsRepository:
             db_events = session.execute(q).scalars().all()
             return [self._db_to_domain(e) for e in db_events]
 
-    def get_events_by_config_id(self, config_id: int, only_valid: bool = True) -> List[Event]:
-        """Get all events for pages with a specific config_id."""
+    def get_events_by_config_id(self, config_id: str, only_valid: bool = True) -> List[Event]:
+        """Get all events for pages with a specific config (config name like 'starkparks.yml')."""
         with self.get_session() as session:
             from app.db.models import Page as DBPage
             q = select(DBEvent).join(DBPage, DBEvent.page_id == DBPage.page_id).where(DBPage.config_id == config_id)

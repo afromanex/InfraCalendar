@@ -110,7 +110,7 @@ class PagesRepository:
                 config_id=p.config_id
             ) for p in rows]
 
-    def delete_pages_by_config_id(self, config_id: int) -> int:
+    def delete_pages_by_config_id(self, config_id: str) -> int:
         """Delete all pages for a given config_id.
         
         Args:

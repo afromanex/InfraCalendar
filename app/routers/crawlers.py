@@ -60,6 +60,8 @@ class CrawlersRouter:
             # Save pages to database
             saved_count = 0
             for page in pages:
+                # Override config_id with the config name we used for fetching
+                page.config_id = config
                 self.pages_repo.upsert_page(page)
                 saved_count += 1
             
@@ -75,20 +77,20 @@ class CrawlersRouter:
     
     async def remove_all_pages(
         self,
-        config_id: int = Query(..., description="Config ID to remove all pages for")
+        config: str = Query(..., description="Config name to remove all pages for (e.g., starkparks.yml)")
     ):
         """
-        Remove all pages associated with a config_id from the database.
+        Remove all pages associated with a config from the database.
         """
         try:
             # Delete pages from database
-            deleted_count = self.pages_repo.delete_pages_by_config_id(config_id)
+            deleted_count = self.pages_repo.delete_pages_by_config_id(config)
             
             return {
                 "status": "success",
-                "message": f"Deleted {deleted_count} pages for config_id={config_id}",
+                "message": f"Deleted {deleted_count} pages for config={config}",
                 "pages_deleted": deleted_count,
-                "config_id": config_id
+                "config": config
             }
         
         except Exception as e:
