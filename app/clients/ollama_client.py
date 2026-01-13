@@ -54,6 +54,8 @@ class OllamaClient:
                         "Do not infer missing dates or times. "
                         f"IMPORTANT: The current year is {current_year}. "
                         f"If a date doesn't specify a year, assume it's {current_year} or {current_year + 1} (whichever makes sense for an upcoming event). "
+                        "For dtstart and dtend, include the TIME if mentioned in the text (e.g., '2:00 PM', '14:00'). "
+                        "Format date-times as 'YYYY-MM-DD HH:MM' or natural language with time like 'Saturday, February 14, 2026 at 2:00 PM'. "
                         "IMPORTANT: Only include rrule if the text explicitly mentions recurring/repeating events. "
                         "Do NOT add rrule for single one-time events."
                     ),
