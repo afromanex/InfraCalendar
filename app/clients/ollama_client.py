@@ -35,7 +35,10 @@ class OllamaClient:
             limits=httpx.Limits(max_connections=10, max_keepalive_connections=5)
         )
 
-    async def chat_page_extract_async(self, page: Page) -> Event: 
+    async def chat_page_extract_async(self, page: Page) -> Event:
+        from datetime import datetime
+        current_year = datetime.now().year
+        
         payload = {
             "model": self.model,
             "stream": False,
@@ -49,6 +52,8 @@ class OllamaClient:
                         "duration, location, url, categories, rrule. "
                         "If a field is not explicitly present in the text, use null. "
                         "Do not infer missing dates or times. "
+                        f"IMPORTANT: The current year is {current_year}. "
+                        f"If a date doesn't specify a year, assume it's {current_year} or {current_year + 1} (whichever makes sense for an upcoming event). "
                         "IMPORTANT: Only include rrule if the text explicitly mentions recurring/repeating events. "
                         "Do NOT add rrule for single one-time events."
                     ),

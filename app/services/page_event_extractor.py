@@ -42,6 +42,7 @@ class PageEventExtractor:
       dtstart_val = self.date_service.format_date(data.get("dtstart"))
       dtend_val = self.date_service.format_date(data.get("dtend"))
       rrule_val = self.date_service.format_rrule(data.get("rrule"))
+      location_val = self.date_service.format_location(data.get("location"))
       
       # Create Event with formatted data
       event = Event(
@@ -52,7 +53,7 @@ class PageEventExtractor:
         duration=data.get("duration"),
         summary=data.get("summary"),
         description=data.get("description"),
-        location=data.get("location"),
+        location=location_val,
         url=page.page_url,
         categories=data.get("categories", []),
         rrule=rrule_val,
